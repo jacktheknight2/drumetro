@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drumetro Pro - Stage Ready</title>
+    <style>
+        /* Grunddesign für die Bühne */
+        body { 
+            background: #000; 
+            color: white; 
+            font-family: sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding: 15px; 
+            overflow: hidden; /* Verhindert unnötiges Scrollen am iPad */
+        }
+        
+        /* Song-Anzeige */
+        #song-info { margin-bottom: 20px; }
+        h1 { font-size: 4em; color: #fffff; margin: 5px 0; } 
+        h2 { font-size: 2em; color: #aaa; margin: 0; }
+        #notizen-haupt { font-size: 2em; color: #888888; margin: 10px 0; min-height: 1.5em; }
+
+        /* Das 4-Punkt-Lauflicht */
+        #takt-anzeige { display: flex; justify-content: center; gap: 25px; margin: 25px 0; }
+        .punkt { width: 60px; height: 60px; border-radius: 50%; background: #222; transition: 0.1s; border: 2px solid #333; }
+        .aktiv-1 { background: #ff0000; box-shadow: 0 0 30px #ff0000; border-color: #ffaaaa; } /* Schlag 1: Rot */
+        .aktiv-andere { background: #00ff00; box-shadow: 0 0 30px #00ff00; border-color: #aaffaa; } /* Andere: Grün */
+
+        /* Button-Steuerung (Groß für iPad) */
+        .btn-group { display: flex; justify-content: center; gap: 15px; margin: 30px 0; }
+        button { padding: 30px; font-size: 1.3em; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+        #startBtn { background: #00ff00; width: 220px; color: black; }
+        .navBtn { background: #333; color: white; width: 140px; }
+        button:active { transform: scale(0.95); opacity: 0.8; }
+
+        /* Playlist Vorschau */
+       #next-songs { 
+    margin-top: 20px; 
+    text-align: left; 
+    max-width: 600px; 
+    margin-left: auto; 
+    margin-right: auto; 
+    border-top: 2px solid #444; 
+    padding-top: 10px;
+}
+
+#liste-vorschau { 
+    max-height: 250px; /* Höhe der Liste am iPad */
+    overflow-y: auto;  /* Aktiviert das Scrollen */
+    padding-right: 10px;
+}
+
+/* Breite des gesamten Scrollbalken-Bereichs */
+#liste-vorschau::-webkit-scrollbar {
+    width: 30px; /* Schön breit für den Finger */
+}
+
+/* Der Hintergrund der Schiene */
+#liste-vorschau::-webkit-scrollbar-track {
+    background: #222;
+    border-radius: 10px;
+}
+
+/* Der bewegliche Balken (Handle) */
+#liste-vorschau::-webkit-scrollbar-thumb {
+    background: #444; 
+    border-radius: 10px;
+    border: 4px solid #222; /* Erzeugt einen kleinen Abstand zum Rand */
+}
+
+/* Wenn man den Balken berührt/drückt */
+#liste-vorschau::-webkit-scrollbar-thumb:active {
+    background: #00ff00; /* Wird grün beim Scrollen */
+}
+
+body {
+    touch-action: pan-y; /* Erlaubt nur vertikales Wischen */
+    overflow: hidden;    /* Verhindert, dass die ganze Seite "hüpft" */
+}
+
+
+
+.vorschau-item { 
+    padding: 15px; 
+    border-bottom: 1px solid #222; 
+    cursor: pointer; /* Zeigt, dass es anklickbar ist */
+    transition: background 0.2s;
+}
+
+/* Der aktuell ausgewählte Song in der Liste */
+.vorschau-item.aktiv-song { 
+    background: #004400; 
+    border-left: 5px solid #00ff00; 
+    opacity: 1;
+}
+        .vorschau-titel { color: #888888; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .vorschau-item { margin-bottom: 12px; opacity: 0.7; }
+        .vorschau-songname { font-weight: bold; font-size: 1.1em; color: #eee; }
+        .vorschau-bpm { font-size: 0.9em; color: #888; }
+        .vorschau-notiz { font-size: 0.95em; color: #888888; display: block; }
+
+.slider-container { 
+    margin: 30px 0; 
+}
+
+input[type=range] {
+    -webkit-appearance: none; /* Deaktiviert das Standard-Aussehen für Safari/iPad */
+    width: 90%;               /* Fast über die ganze Breite */
+    height: 25px;             /* Der Balken wird dicker */
+    background: #333; 
+    border-radius: 15px;
+    outline: none;
+}
+
+/* Der "Knopf" zum Schieben für iPad/Chrome */
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 50px;              /* Richtig breiter Knopf */
+    height: 50px;             /* Richtig hoher Knopf */
+    background: #00ff00;      /* Giftgrün */
+    border-radius: 50%;       /* Rund */
+    cursor: pointer;
+    border: 3px solid #fff;   /* Weißer Rand zur besseren Sichtbarkeit */
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+}
+
+    </style>
+</head>
+<body>
+
+   
+
+<div id="song-info">
+    <h1 id="titel">Lade Setlist...</h1>
+    <h2 id="bpm-anzeige">BPM: --</h2>
+    <p id="notizen-haupt">-</p>
+
+    <div class="slider-container">
+        <input type="range" id="bpm-slider" min="40" max="250" value="120" oninput="updateBpmVomSlider(this.value)">
+    </div>
+</div>
+
+    <div id="takt-anzeige">
+        <div id="p1" class="punkt"></div>
+        <div id="p2" class="punkt"></div>
+        <div id="p3" class="punkt"></div>
+        <div id="p4" class="punkt"></div>
+    </div>
+
+    <div class="btn-group">
+        <button class="navBtn" onclick="zurueck()">ZURÜCK</button>
+        <button id="startBtn" onclick="toggle()">START</button>
+        <button class="navBtn" onclick="vor()">WEITER</button>
+    </div>
+
+    <div id="next-songs">
+        <div class="vorschau-titel">Nächste Songs:</div>
+        <div id="liste-vorschau"></div>
+    </div>
+
+<script>
+    // --- DEINE SETLIST (HIER BEARBEITEN) ---
+    const setlist = [
+        { titel: "Highway to Hell", bpm: 116, notizen: "Intro 4 Takte" },
+        { titel: "Billie Jean", bpm: 117, notizen: "Snare Fokus" },
+        { titel: "Smells Like Spirit", bpm: 117, notizen: "Intro Fill-In!" },
+        { titel: "Dein neuer Song", bpm: 140, notizen: "Vollgas geben!" },
+{titel: "fast fast fast", bpm: 240, notizen: "dsa hier ist ein test!"},
+{ titel: "All the small things", bpm: 145, notizen: "Solo 3x4, 4.x Aufbau " },
+{ titel: "Loss mi amoi no", bpm: 123, notizen: "Solo, Ende zusammenschauen " },
+{ titel: "Verdammt ich lieb dich", bpm: 107, notizen: "anfang time! Geben " },
+{ titel: "Bologna", bpm: 114, notizen: "2 2+ 4 Beat immer außer Wenn jemand " },
+{ titel: "Narcotic", bpm: 93, notizen: "Time!" },
+{ titel: "Westerland", bpm: 175, notizen: "1. Strophe lang, bridge nicht vergessen " },
+{ titel: "Sara perche ti amo", bpm: 28, notizen: "Einstieg 2. Strophe Solo " },
+{ titel: "Boys of Summer", bpm: 192, notizen: "Time! Solo 16T leise 16 laut, schluss Intro + Triolen" },
+{ titel: "Freindschoft ", bpm: 120, notizen: "Ablauf unklar, bitte selber nochmal einstudieren" },
+{ titel: "najo was i ned ", bpm: 219, notizen: "schnell schnell " },
+
+
+    ];
+
+    let index = 0;
+    let läuft = false;
+    let timer = null;
+    let schlag = 0;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function zeigeSong() {
+    const song = setlist[index];
+    document.getElementById('titel').innerText = song.titel;
+    document.getElementById('bpm-anzeige').innerText = "BPM: " + song.bpm;
+    document.getElementById('notizen-haupt').innerText = song.notizen;
+    document.getElementById('bpm-slider').value = song.bpm;
+
+    // Komplette Liste bauen
+    let vorschauHTML = "";
+    setlist.forEach((s, i) => {
+        // Prüfen, ob dieser Song der gerade aktive ist
+        const istAktiv = (i === index) ? "aktiv-song" : "";
+        
+        vorschauHTML += `
+            <div class="vorschau-item ${istAktiv}" onclick="waehleSong(${i})">
+                <span class="vorschau-songname">${i + 1}. ${s.titel}</span> 
+                <span class="vorschau-bpm">(${s.bpm} BPM)</span>
+                <span class="vorschau-notiz">${s.notizen || ""}</span>
+            </div>`;
+    });
+    document.getElementById('liste-vorschau').innerHTML = vorschauHTML;
+
+    if (läuft) starteTimer();
+}
+
+function waehleSong(neuerIndex) {
+    index = neuerIndex;
+    zeigeSong();
+}
+
+    function playSound(freq) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    function tick() {
+        document.querySelectorAll('.punkt').forEach(p => p.classList.remove('aktiv-1', 'aktiv-andere'));
+        
+        schlag = (schlag % 4) + 1;
+        const aktuellerPunkt = document.getElementById('p' + schlag);
+        
+        if (schlag === 1) {
+            aktuellerPunkt.classList.add('aktiv-1');
+            playSound(1200);
+        } else {
+            aktuellerPunkt.classList.add('aktiv-andere');
+            playSound(800);
+        }
+    }
+
+    function starteTimer() {
+        clearInterval(timer);
+        const ms = 60000 / setlist[index].bpm;
+        timer = setInterval(tick, ms);
+    }
+
+    function toggle() {
+        if (läuft) {
+            clearInterval(timer);
+            läuft = false;
+            document.getElementById('startBtn').innerText = "START";
+            document.getElementById('startBtn').style.background = "#00ff00";
+        } else {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            schlag = 0;
+            läuft = true;
+            starteTimer();
+            document.getElementById('startBtn').innerText = "STOPP";
+            document.getElementById('startBtn').style.background = "#ff4400";
+        }
+    }
+
+    function vor() {
+        if (index < setlist.length - 1) {
+            index++;
+            zeigeSong();
+        }
+    }
+
+    function zurueck() {
+        if (index > 0) {
+            index--;
+            zeigeSong();
+        }
+    }
+
+    // Erster Aufruf
+    zeigeSong();
+
+function updateBpmVomSlider(neuerWert) {
+    // 1. Wert in der Setlist für diesen Song temporär ändern
+    setlist[index].bpm = parseInt(neuerWert);
+    
+    // 2. Anzeige aktualisieren
+    document.getElementById('bpm-anzeige').innerText = "BPM: " + neuerWert;
+    
+    // 3. Wenn es läuft, sofort das Tempo anpassen
+    if (läuft) starteTimer();
+}
+
+// Ergänzung in der vorhandenen zeigeSong() Funktion:
+// Suche in zeigeSong() die Zeile mit bpm-anzeige und füge danach das hier ein:
+document.getElementById('bpm-slider').value = song.bpm;
+
+</script>
+</body>
+</html>
